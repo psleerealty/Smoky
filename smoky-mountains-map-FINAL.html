@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Smoky Mountains 2026</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; width: 100%; overflow: hidden; font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; background: #f5f3ee; color: #111111; }
+.app { display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; height: 100vh; height: 100dvh; }
+header { background: #2d6a4f; color: #fff; padding: 11px 16px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.25); }
+header h1 { font-size: 17px; font-weight: 700; margin-bottom: 2px; }
+header p  { font-size: 12px; opacity: 0.82; }
+.layout { display: -webkit-flex; display: flex; -webkit-flex: 1; flex: 1; overflow: hidden; min-height: 0; }
+.sidebar { width: 280px; flex-shrink: 0; background: #ffffff; border-right: 1px solid #d0cbc0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.sb-title { padding: 9px 14px; font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: #111111; background: #f0ece3; border-bottom: 1px solid #d0cbc0; position: -webkit-sticky; position: sticky; top: 0; z-index: 5; }
+.day-group { border-bottom: 1px solid #e4dfd4; }
+.day-hdr { padding: 8px 12px; background: #f7f4ee; display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; gap: 10px; border-bottom: 1px solid #e4dfd4; }
+.day-badge { width: 26px; height: 26px; border-radius: 50%; display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.day-date  { font-size: 12px; font-weight: 700; color: #111111; line-height: 1.2; }
+.day-theme { font-size: 11px; color: #3d3a33; font-style: italic; margin-top: 1px; }
+.stop-list { padding: 8px 10px; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; gap: 5px; }
+.stop-item { display: -webkit-flex; display: flex; -webkit-align-items: flex-start; align-items: flex-start; gap: 10px; padding: 8px 10px; border-radius: 8px; cursor: pointer; border: 1.5px solid #ede9e1; background: #faf8f4; -webkit-tap-highlight-color: rgba(0,0,0,0.08); }
+.stop-item.active { background: #e8f0ff; border-color: #4a6fa5; }
+.stop-num { width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; margin-top: 1px; }
+.stop-info { flex: 1; min-width: 0; }
+.stop-name { font-size: 13px; font-weight: 700; color: #111111; line-height: 1.3; }
+.stop-time { font-size: 11px; color: #3d3a33; margin-top: 2px; }
+.stop-drv  { font-size: 11px; font-weight: 600; margin-top: 3px; }
+#map { -webkit-flex: 1; flex: 1; min-width: 0; }
+/* Legend */
+.legend { padding: 6px 14px; background: #f7f4ee; border-top: 1px solid #d0cbc0; display: -webkit-flex; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; flex-shrink: 0; }
+.leg-item { display: -webkit-flex; display: flex; align-items: center; gap: 5px; font-size: 10.5px; color: #111111; font-weight: 500; }
+.leg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+/* Popup */
+.rp .leaflet-popup-content-wrapper { border-radius: 14px; padding: 0; overflow: hidden; box-shadow: 0 10px 36px rgba(0,0,0,0.22); max-width: 290px; min-width: 270px; }
+.rp .leaflet-popup-content { margin: 0; }
+.rp .leaflet-popup-close-button { color: #fff !important; font-size: 18px !important; top: 6px !important; right: 8px !important; text-shadow: 0 1px 3px rgba(0,0,0,0.5); z-index: 10; }
+.pop-hero { font-size: 40px; text-align: center; padding: 14px 0 10px; background: #e8f4ef; min-height: 50px; }
+.pop-hero img { width: 100%; height: 130px; object-fit: cover; display: block; margin-bottom: -4px; }
+.hero-emoji { display: inline-block; }
+.pop-body { padding: 11px 13px 7px; }
+.pop-day   { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 3px; opacity: 0.75; }
+.pop-name  { font-size: 15px; font-weight: 700; line-height: 1.25; margin-bottom: 5px; color: #111111; }
+.pop-detail{ font-size: 12px; color: #444; line-height: 1.55; }
+.pop-tips  { padding: 8px 13px; border-top: 1px solid #f0ece4; }
+.pop-tip   { font-size: 11.5px; color: #1b3a2e; line-height: 1.5; padding: 3px 0; display: -webkit-flex; display: flex; gap: 6px; }
+.pop-tip-check { font-weight: 700; flex-shrink: 0; }
+.pop-ft { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: space-between; justify-content: space-between; padding: 8px 13px 12px; border-top: 1px solid #f0ece4; gap: 8px; }
+.pop-drv  { font-size: 11px; font-weight: 600; }
+.pop-link { color: #fff; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; text-decoration: none; white-space: nowrap; flex-shrink: 0; }
+.pop-wx { background: #f0f7f4; border-top: 1px solid #d8ede4; padding: 8px 13px 10px; }
+.pop-wx-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #2d6a4f; margin-bottom: 7px; }
+.pop-wx-note { font-size: 9px; font-weight: 400; color: #888; text-transform: none; margin-left: 4px; letter-spacing: 0; }
+.pop-wx-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 7px; }
+.pop-wx-item { background: #fff; border-radius: 6px; padding: 5px 3px 4px; text-align: center; border: 1px solid #d0e8dc; }
+.pop-wx-val { display: block; font-size: 11px; font-weight: 700; color: #1b4332; line-height: 1.2; }
+.pop-wx-lbl { display: block; font-size: 8.5px; color: #5a8a72; margin-top: 1px; }
+.pop-wx-best { font-size: 11px; color: #1b4332; margin-bottom: 3px; }
+.pop-wx-desc { font-size: 10.5px; color: #5a6672; font-style: italic; line-height: 1.4; }
+@media (max-width: 600px) {
+  .layout { -webkit-flex-direction: column; flex-direction: column; }
+  #map { height: 50vh; -webkit-flex: none; flex: none; }
+  .sidebar { width: 100%; height: 48vh; border-right: none; border-top: 2px solid #2d6a4f; }
+  .legend { display: none; }
+  .rp .leaflet-popup-content-wrapper { max-width: 270px; min-width: 250px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>&#127956; Smoky Mountains Family Trip 2026</h1>
+    <p>July 6&ndash;12 &middot; Tap any pin or stop for photos &amp; tips</p>
+  </header>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sb-title">&#128247; Tap a stop to explore</div>
+    </aside>
+    <div id="map"></div>
+  </div>
+  <div class="legend"><div class="leg-item"><div class="leg-dot" style="background:#4a8c4a"></div><span>Easy Nature / Scenic Drive</span></div><div class="leg-item"><div class="leg-dot" style="background:#2d7a4f"></div><span>Moderate Hike</span></div><div class="leg-item"><div class="leg-dot" style="background:#1a5c32"></div><span>Strenuous Hike (optional)</span></div><div class="leg-item"><div class="leg-dot" style="background:#c47c2a"></div><span>Dining</span></div><div class="leg-item"><div class="leg-dot" style="background:#7952b3"></div><span>Theme Park</span></div><div class="leg-item"><div class="leg-dot" style="background:#4a6fa5"></div><span>Evening / Entertainment</span></div><div class="leg-item"><div class="leg-dot" style="background:#5a6672"></div><span>Home Base</span></div></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+var DAYS = [
+  {
+    "date": "Mon, Jul 6",
+    "theme": "Arrival & Settling",
+    "color": "#5a6672",
+    "stops": [
+      {
+        "name": "Home Base \u2014 2724 Pine Crest Ln",
+        "lat": 35.8526,
+        "lng": -83.5441,
+        "time": "4:00 PM Check-In",
+        "detail": "Cabin with arcade, pool table & hot tub. All distances from here.",
+        "drive": "Base camp",
+        "dist": "All distances from here",
+        "emoji": "&#127968;",
+        "photo": "https://images.unsplash.com/photo-1542718610-a1d656d1884c?w=560&q=75&auto=format&fit=crop",
+        "tips": [
+          "Stock up on groceries before heading up",
+          "Kids arcade, pool table & hot tub on-site",
+          "Best porch views at sunrise & sunset"
+        ],
+        "website": "https://maps.apple.com/?address=2724+Pine+Crest+Ln,+Sevierville,+TN+37862",
+        "wlabel": "Open in Maps",
+        "stopColor": "#5a6672",
+        "weather": {
+          "high": "84\u00b0F",
+          "low": "63\u00b0F",
+          "rain": "42%",
+          "uv": "9 (Very High)",
+          "best": "Morning & evening",
+          "note": "Afternoons humid & hot \u2014 great pool/hot tub time"
+        }
+      }
+    ]
+  },
+  {
+    "date": "Tue, Jul 7",
+    "theme": "Cades Cove",
+    "color": "#4a8c4a",
+    "stops": [
+      {
+        "name": "Cades Cove Loop",
+        "lat": 35.6082,
+        "lng": -83.8263,
+        "time": "7:30 AM \u2014 Leave Early!",
+        "detail": "11-mile scenic loop drive. Elijah Oliver cabin walk, picnic by the creek. Watch for bears!",
+        "drive": "~60 min",
+        "dist": "~42 mi from cabin",
+        "emoji": "&#129420;",
+        "photo": "https://pplx-res.cloudinary.com/image/upload/pplx_search_images/a24ee6289220a8c4162ee31a8cb5e3933ef10cfe.jpg",
+        "tips": [
+          "Pack food \u2014 nothing available inside the loop",
+          "Leave by 7:30 AM; very congested after 10 AM",
+          "Watch for bears, deer & turkeys on the meadow"
+        ],
+        "website": "https://www.nps.gov/grsm/planyourvisit/cadescove.htm",
+        "wlabel": "NPS Info",
+        "stopColor": "#4a8c4a",
+        "weather": {
+          "high": "82\u00b0F",
+          "low": "61\u00b0F",
+          "rain": "40%",
+          "uv": "8 (Very High)",
+          "best": "7\u201310 AM",
+          "note": "Valley traps heat after 11 AM \u2014 leave early"
+        }
+      },
+      {
+        "name": "Abrams Falls Trail (optional)",
+        "lat": 35.6033,
+        "lng": -83.7971,
+        "time": "Optional after the loop",
+        "detail": "5-mile roundtrip hike to a powerful waterfall. Best for able hikers only; split-group friendly if some want to rest.",
+        "drive": "Trailhead on loop",
+        "dist": "At mile 4.8 of Cades Cove Loop",
+        "emoji": "&#128167;",
+        "photo": "https://pplx-res.cloudinary.com/image/upload/pplx_search_images/501fb29c795dfede42e0aa820e362abbddbc625c.jpg",
+        "tips": [
+          "3-4 hours total, moderate difficulty",
+          "Return is mostly uphill, so pace yourselves",
+          "Trailhead parking is right off the loop road"
+        ],
+        "website": "https://www.nps.gov/thingstodo/hike-to-abrams-falls.htm",
+        "wlabel": "NPS Trail Info",
+        "stopColor": "#1a5c32",
+        "weather": {
+          "high": "79\u00b0F",
+          "low": "59\u00b0F",
+          "rain": "42%",
+          "uv": "7 (High)",
+          "best": "8\u201311 AM",
+          "note": "~2,800 ft elevation \u2014 ~5\u00b0F cooler than Gatlinburg"
+        }
+      }
+    ]
+  },
+  {
+    "date": "Wed, Jul 8",
+    "theme": "Waterfalls & Roaring Fork",
+    "color": "#2d7a4f",
+    "stops": [
+      {
+        "name": "Grotto Falls Trailhead",
+        "lat": 35.6845,
+        "lng": -83.4487,
+        "time": "8:00 AM",
+        "detail": "The ONLY Smokies waterfall you can walk behind. 2.6 mi roundtrip, ~2-3 hrs.",
+        "drive": "~30 min",
+        "dist": "~18 mi from cabin",
+        "emoji": "&#128167;",
+        "photo": "https://pplx-res.cloudinary.com/image/upload/pplx_search_images/9640de88a6912f5f32ac9a01249af1b3ee192f5d.jpg",
+        "tips": [
+          "Only ~20 parking spots \u2014 arrive by 8 AM sharp",
+          "Bring a carrier for the 4-year-old on the return",
+          "Trail passes directly behind the waterfall"
+        ],
+        "website": "https://www.nps.gov/places/grotto-falls.htm",
+        "wlabel": "NPS Info",
+        "stopColor": "#2d7a4f",
+        "weather": {
+          "high": "74\u00b0F",
+          "low": "55\u00b0F",
+          "rain": "44%",
+          "uv": "6 (High)",
+          "best": "8\u201310 AM",
+          "note": "~3,500 ft elevation \u2014 noticeably cooler, mist from falls"
+        }
+      },
+      {
+        "name": "Crockett's Breakfast Camp \u2605",
+        "lat": 35.7121,
+        "lng": -83.5109,
+        "time": "Late Morning / Brunch",
+        "detail": "Top-rated Gatlinburg breakfast spot. Famous pancakes & Southern cooking.",
+        "drive": "~10 min",
+        "dist": "from Grotto Falls",
+        "emoji": "&#129362;",
+        "photo": "https://pplx-res.cloudinary.com/image/upload/pplx_search_images/d0f818d0be5067287de912095663f866433962b1.jpg",
+        "tips": [
+          "Open 7 AM\u20131 PM only",
+          "Expect a wait on busy July mornings",
+          "1103 Parkway, Gatlinburg TN"
+        ],
+        "website": "https://maps.apple.com/?address=1103+Parkway,+Gatlinburg,+TN+37738",
+        "wlabel": "Open in Maps",
+        "stopColor": "#c47c2a",
+        "weather": {
+          "high": "84\u00b0F",
+          "low": "63\u00b0F",
+          "rain": "42%",
+          "uv": "9 (Very High)",
+          "best": "Any time (indoors)",
+          "note": "Downtown Gatlinburg \u2014 open 7 AM\u20131 PM only"
+        }
+      },
+      {
+        "name": "Roaring Fork Motor Nature Trail",
+        "lat": 35.7063,
+        "lng": -83.4713,
+        "time": "Late Afternoon",
+        "detail": "5-mile one-way scenic drive with roadside waterfalls & historic log cabins.",
+        "drive": "~5 min",
+        "dist": "from Crockett's",
+        "emoji": "&#127794;",
+        "photo": "https://pplx-res.cloudinary.com/image/upload/pplx_search_images/9228bc4e28428d2bf8365ee05a0dba6e047f61ab.jpg",
+        "tips": [
+          "No hiking required \u2014 drive the whole thing",
+          "One-way road so no turning back",
+          "Watch for roadside waterfalls on the left"
+        ],
+        "website": "https://www.nps.gov/grsm/planyourvisit/roaringfork.htm",
+        "wlabel": "NPS Info",
+        "stopColor": "#4a8c4a",
+        "weather": {
+          "high": "78\u00b0F",
+          "low": "58\u00b0F",
+          "rain": "44%",
+          "uv": "7 (High)",
+          "best": "Afternoon OK (drive-through)",
+          "note": "~3,000 ft avg elevation \u2014 cooler than town"
+        }
+      }
+    ]
+  },
+  {
+    "date": "Thu, Jul 9",
+    "theme": "Dollywood",
+    "color": "#7952b3",
+    "stops": [
+      {
+        "name": "Dollywood",
+        "lat": 35.7953,
+        "lng": -83.5317,
+        "time": "9:00 AM Rope-Drop",
+        "detail": "Head straight to Wildwood Grove. Hidden Hollow indoor play is perfect for the 4-year-old.",
+        "drive": "~15 min",
+        "dist": "~8 mi from cabin",
+        "emoji": "&#127906;",
+        "photo": "https://pplx-res.cloudinary.com/image/upload/pplx_search_images/3eea5af0b28150cc6429277db135794a8a578eaf.jpg",
+        "tips": [
+          "Arrive at 9 AM opening to beat heat & lines",
+          "Wildwood Grove first \u2014 Hidden Hollow for the little one",
+          "Grandparents: shaded seating throughout Wildwood Grove"
+        ],
+        "website": "https://www.dollywood.com",
+        "wlabel": "Dollywood Website",
+        "stopColor": "#7952b3",
+        "weather": {
+          "high": "86\u00b0F",
+          "low": "64\u00b0F",
+          "rain": "38%",
+          "uv": "9 (Very High)",
+          "best": "9 AM\u20131 PM",
+          "note": "Pigeon Forge valley \u2014 hottest & most humid of all stops"
+        }
+      }
+    ]
+  },
+  {
+    "date": "Fri, Jul 10",
+    "theme": "Anakeesta Evening",
+    "color": "#4a6fa5",
+    "stops": [
+      {
+        "name": "Anakeesta",
+        "lat": 35.7142,
+        "lng": -83.5128,
+        "time": "1:00 PM \u2192 Stay until ~9 PM",
+        "detail": "Chondola ride up, 16-bridge Treetop Skywalk, Firefly Village glows at dusk. Open rain or shine.",
+        "drive": "~30 min",
+        "dist": "~14 mi from cabin",
+        "emoji": "&#127807;",
+        "photo": "https://pplx-res.cloudinary.com/image/upload/pplx_search_images/98eec9ed196b0cf8ee55f63ceefe5b7196897234.jpg",
+        "tips": [
+          "Gondola handles all elevation \u2014 great for grandparents",
+          "Firefly Village is magical after dark",
+          "Open rain or shine \u2014 great on cloudy days"
+        ],
+        "website": "https://anakeesta.com",
+        "wlabel": "Anakeesta Website",
+        "stopColor": "#4a6fa5",
+        "weather": {
+          "high": "78\u00b0F",
+          "low": "60\u00b0F",
+          "rain": "42%",
+          "uv": "7 (High)",
+          "best": "Late afternoon \u2192 evening",
+          "note": "~1,800 ft elevation \u2014 cooler at night, magical after dark"
+        }
+      }
+    ]
+  },
+  {
+    "date": "Sat, Jul 11",
+    "theme": "Stream & Pigeon Forge",
+    "color": "#2d7a4f",
+    "stops": [
+      {
+        "name": "Little River Trail (Elkmont)",
+        "lat": 35.6603,
+        "lng": -83.5873,
+        "time": "8:30 AM",
+        "detail": "Wide, flat riverside trail on a former railroad bed. Perfectly flat for 2+ miles.",
+        "drive": "~40 min",
+        "dist": "~27 mi from cabin",
+        "emoji": "&#127754;",
+        "photo": "https://pplx-res.cloudinary.com/image/upload/pplx_search_images/1eedf9fdea2cac6b2033787a24814567a1e15ba0.jpg",
+        "tips": [
+          "Former railroad bed \u2014 wide & flat for all ages",
+          "Keep to 1\u20131.5 mi out-and-back to save energy",
+          "Beautiful river views the whole way"
+        ],
+        "website": "https://www.nps.gov/thingstodo/hike-little-river-trail.htm",
+        "wlabel": "NPS Trail Info",
+        "stopColor": "#2d7a4f",
+        "weather": {
+          "high": "76\u00b0F",
+          "low": "57\u00b0F",
+          "rain": "44%",
+          "uv": "6 (High)",
+          "best": "8:30\u201311 AM",
+          "note": "~2,100 ft elevation \u2014 riverside trail stays shady & cool"
+        }
+      },
+      {
+        "name": "The Island in Pigeon Forge",
+        "lat": 35.7929,
+        "lng": -83.5581,
+        "time": "Evening",
+        "detail": "Fountain show at dusk, scenic Ferris wheel, shops & family fun. Free to walk around.",
+        "drive": "~12 min",
+        "dist": "~7 mi from cabin",
+        "emoji": "&#127905;",
+        "photo": "https://pplx-res.cloudinary.com/image/upload/pplx_search_images/77a05c5beb72903a658d0442dfbaf546f695596b.jpg",
+        "tips": [
+          "Fountain show runs at dusk \u2014 stay for the dark show",
+          "Large Ferris wheel with mountain views",
+          "Free entry; rides are individually priced"
+        ],
+        "website": "https://maps.apple.com/?ll=35.7929,-83.5581&q=The+Island+in+Pigeon+Forge",
+        "wlabel": "Open in Maps",
+        "stopColor": "#4a6fa5",
+        "weather": {
+          "high": "86\u00b0F",
+          "low": "64\u00b0F",
+          "rain": "38%",
+          "uv": "8 (High)",
+          "best": "Evening (cooler, fountain show)",
+          "note": "Valley heat \u2014 evening visit planned, perfect timing"
+        }
+      }
+    ]
+  }
+];
+
+var sb = document.getElementById('sidebar');
+DAYS.forEach(function(day, di) {
+  var grp = document.createElement('div');
+  grp.className = 'day-group';
+  var h = '<div class="day-hdr">' +
+    '<div class="day-badge" style="background:' + day.color + '">' + (di+1) + '</div>' +
+    '<div><div class="day-date">' + day.date + '</div><div class="day-theme">' + day.theme + '</div></div>' +
+    '</div><div class="stop-list">';
+  day.stops.forEach(function(stop, si) {
+    var sc = stop.stopColor || day.color;
+    h += '<div class="stop-item" data-di="' + di + '" data-si="' + si + '">' +
+      '<div class="stop-num" style="background:' + sc + '">' + (si+1) + '</div>' +
+      '<div class="stop-info">' +
+        '<div class="stop-name">' + stop.name + '</div>' +
+        '<div class="stop-time">' + stop.time + '</div>' +
+        '<div class="stop-drv" style="color:' + sc + '">&#128663; ' + stop.drive + ' &middot; ' + stop.dist + '</div>' +
+      '</div></div>';
+  });
+  h += '</div>';
+  grp.innerHTML = h;
+  sb.appendChild(grp);
+});
+
+sb.addEventListener('click', function(e) {
+  var el = e.target;
+  while (el && !el.classList.contains('stop-item')) el = el.parentElement;
+  if (!el) return;
+  fly(parseInt(el.getAttribute('data-di')), parseInt(el.getAttribute('data-si')));
+});
+
+var map = L.map('map', { tap: true, zoomControl: true }).setView([35.72, -83.60], 10);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  maxZoom: 19, attribution: '&copy; OSM &copy; CARTO'
+}).addTo(map);
+
+function mkIcon(color, n) {
+  var s = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="48" viewBox="0 0 38 48">' +
+    '<path d="M19 2C11 2 4 9 4 18c0 11 15 28 15 28s15-17 15-28C34 9 27 2 19 2z" fill="' + color + '" stroke="white" stroke-width="2.5"/>' +
+    '<circle cx="19" cy="18" r="9" fill="white" opacity="0.93"/>' +
+    '<text x="19" y="22.5" text-anchor="middle" font-family="-apple-system,Helvetica,Arial,sans-serif" font-size="10.5" font-weight="bold" fill="' + color + '">' + n + '</text>' +
+    '</svg>';
+  return L.divIcon({ html: s, className: '', iconSize: [38,48], iconAnchor: [19,48], popupAnchor: [0,-52] });
+}
+
+var markers = [];
+var allLL = [];
+var n = 1;
+
+DAYS.forEach(function(day, di) {
+  var dayLL = day.stops.map(function(s){ return [s.lat, s.lng]; });
+  allLL = allLL.concat(dayLL);
+  if (dayLL.length > 1) {
+    L.polyline(dayLL, {color: day.color, weight: 2.5, opacity: 0.6, dashArray: '6,5'}).addTo(map);
+  }
+  day.stops.forEach(function(stop, si) {
+    var sc = stop.stopColor || day.color;
+    var tipHtml = '';
+    if (stop.tips) {
+      stop.tips.forEach(function(t) {
+        tipHtml += '<div class="pop-tip"><span class="pop-tip-check" style="color:' + sc + '">&#10003;</span><span>' + t + '</span></div>';
+      });
+    }
+    var linkHtml = stop.website ? '<a class="pop-link" style="background:' + sc + '" href="' + stop.website + '" target="_blank">&#128205; ' + stop.wlabel + '</a>' : '';
+    var photoHtml = stop.photo
+      ? '<div class="pop-hero" data-photo="' + stop.photo + '" style="background:#e8f4ef"><span class="hero-emoji">' + (stop.emoji || '&#127956;') + '</span></div>'
+      : '<div class="pop-hero" style="background:#e8f4ef"><span class="hero-emoji">' + (stop.emoji || '&#127956;') + '</span></div>';
+    var wxHtml = '';
+    if (stop.weather) {
+      var wx = stop.weather;
+      wxHtml = '<div class="pop-wx">' +
+        '<div class="pop-wx-title">&#127773; Avg July Weather <span class="pop-wx-note">historical</span></div>' +
+        '<div class="pop-wx-grid">' +
+          '<div class="pop-wx-item"><span class="pop-wx-val">' + wx.high + '</span><span class="pop-wx-lbl">High</span></div>' +
+          '<div class="pop-wx-item"><span class="pop-wx-val">' + wx.low + '</span><span class="pop-wx-lbl">Low</span></div>' +
+          '<div class="pop-wx-item"><span class="pop-wx-val">' + wx.rain + '</span><span class="pop-wx-lbl">Rain chance</span></div>' +
+          '<div class="pop-wx-item"><span class="pop-wx-val">&#127774; ' + wx.uv + '</span><span class="pop-wx-lbl">UV Index</span></div>' +
+        '</div>' +
+        '<div class="pop-wx-best">&#9200; Best time: <b>' + wx.best + '</b></div>' +
+        '<div class="pop-wx-desc">' + wx.note + '</div>' +
+      '</div>';
+    }
+    var popup =
+      photoHtml +
+      '<div class="pop-body">' +
+        '<div class="pop-day" style="color:' + sc + '">' + day.date + ' &middot; ' + day.theme + '</div>' +
+        '<div class="pop-name">' + stop.name + '</div>' +
+        '<div class="pop-detail">' + stop.detail + '</div>' +
+      '</div>' +
+      '<div class="pop-tips">' + tipHtml + '</div>' +
+      wxHtml +
+      '<div class="pop-ft"><span class="pop-drv" style="color:' + sc + '">&#128663; ' + stop.drive + ' &middot; ' + stop.dist + '</span>' + linkHtml + '</div>';
+    var m = L.marker([stop.lat, stop.lng], {icon: mkIcon(sc, n)})
+      .addTo(map)
+      .bindPopup(popup, {className: 'rp', maxWidth: 300, autoPan: true});
+    m.on('click', function(){ highlight(di, si); });
+    markers.push({m: m, di: di, si: si, stop: stop});
+    n++;
+  });
+});
+
+L.polyline(allLL, {color:'#bbb', weight:1, opacity:0.22, dashArray:'3,10'}).addTo(map);
+map.fitBounds(L.latLngBounds(allLL), {padding:[32,32]});
+
+function fly(di, si) {
+  for (var i = 0; i < markers.length; i++) {
+    if (markers[i].di === di && markers[i].si === si) {
+      var e = markers[i];
+      map.flyTo([e.stop.lat, e.stop.lng], 14, {duration: 0.9});
+      setTimeout(function(){ e.m.openPopup(); }, 1000);
+      highlight(di, si);
+      return;
+    }
+  }
+}
+
+function highlight(di, si) {
+  var items = document.querySelectorAll('.stop-item');
+  for (var i = 0; i < items.length; i++) items[i].classList.remove('active');
+  var el = document.querySelector('.stop-item[data-di="' + di + '"][data-si="' + si + '"]');
+  if (el) { el.classList.add('active'); el.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+}
+
+map.on('popupopen', function(e) {
+  var popupEl = e.popup.getElement();
+  if (!popupEl) return;
+  var hero = popupEl.querySelector('.pop-hero');
+  if (!hero || !hero.getAttribute('data-photo')) return;
+  var url = hero.getAttribute('data-photo');
+  if (!url || hero.querySelector('img')) return;
+  var img = new Image();
+  img.onload = function() {
+    var imgEl = document.createElement('img');
+    imgEl.src = url;
+    hero.insertBefore(imgEl, hero.firstChild);
+    var em = hero.querySelector('.hero-emoji');
+    if (em) em.style.display = 'none';
+    hero.style.padding = '0';
+    hero.style.background = 'none';
+  };
+  img.src = url;
+});
+</script>
+</body>
+</html>
